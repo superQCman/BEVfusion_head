@@ -1,0 +1,1 @@
+g++ test.cpp -o test -I /usr/local/include/onnxruntime -L /usr/local/lib -lonnxruntime
