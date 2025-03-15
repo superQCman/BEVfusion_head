@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <cassert>
+#include "head.h"
 
 // Convert float32 to float16 (IEEE 754 Half-precision)
 uint16_t float32_to_float16(float value) {
@@ -11,7 +12,7 @@ uint16_t float32_to_float16(float value) {
     return h;
 }
 
-int main() {
+void head(float* input) {
     // 1. Create ONNX Runtime environment
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ONNXRuntime");
 
@@ -19,18 +20,18 @@ int main() {
     Ort::SessionOptions session_options;
 
     // 3. Load .ort model
-    std::string model_path = "optimized_model.ort";
+    std::string model_path = "/home/ting/SourceCode/BEVfusion-code/head/optimized_model.ort";
     Ort::Session session(env, model_path.c_str(), session_options);
 
-    std::cout << "✅ ORT model loaded successfully!" << std::endl;
+    std::cout << " ORT model loaded successfully!" << std::endl;
 
     // 4. Get input information
     Ort::AllocatorWithDefaultOptions allocator;
     auto input_name = session.GetInputNameAllocated(0, allocator);
     auto input_shape = session.GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
 
-    std::cout << "📌 Input name: " << input_name.get() << std::endl;
-    std::cout << "📌 Input shape: [";
+    std::cout << " Input name: " << input_name.get() << std::endl;
+    std::cout << " Input shape: [";
     for (size_t i = 0; i < input_shape.size(); i++) {
         std::cout << input_shape[i] << (i < input_shape.size() - 1 ? ", " : "");
     }
@@ -39,7 +40,7 @@ int main() {
     // 5. Convert float32 to float16 and create input tensor
     std::vector<Ort::Float16_t> input_tensor(input_shape[0] * input_shape[1] * input_shape[2] * input_shape[3]);
     for (size_t i = 0; i < input_tensor.size(); i++) {
-        uint16_t f16 = float32_to_float16(1.0f);
+        uint16_t f16 = float32_to_float16(input[i]);
         input_tensor[i].val = f16;
     }
 
@@ -54,7 +55,7 @@ int main() {
     // 7. Run inference
     // 获取输出数量
     size_t num_outputs = session.GetOutputCount();
-    std::cout << "📌 Number of outputs: " << num_outputs << std::endl;
+    std::cout << " Number of outputs: " << num_outputs << std::endl;
 
     // 准备输出名称
     std::vector<const char*> output_names(num_outputs);
@@ -62,7 +63,7 @@ int main() {
     for (size_t i = 0; i < num_outputs; i++) {
         output_names_ptr.push_back(session.GetOutputNameAllocated(i, allocator));
         output_names[i] = output_names_ptr.back().get();
-        std::cout << "📌 Output " << i << " name: " << output_names[i] << std::endl;
+        std::cout << " Output " << i << " name: " << output_names[i] << std::endl;
     }
 
     const char* input_names[] = {input_name.get()};
@@ -79,7 +80,7 @@ int main() {
     for (size_t i = 0; i < num_outputs; i++) {
         auto output_shape = output_tensors[i].GetTensorTypeAndShapeInfo().GetShape();
         
-        std::cout << "📌 Output " << i << " shape: [";
+        std::cout << " Output " << i << " shape: [";
         for (size_t j = 0; j < output_shape.size(); j++) {
             std::cout << output_shape[j] << (j < output_shape.size() - 1 ? ", " : "");
         }
@@ -89,12 +90,21 @@ int main() {
         auto* output_data = output_tensors[i].GetTensorMutableData<float>();
 
         // 打印前5个值
-        std::cout << "🟢 Output " << i << " first 5 values: ";
+        std::cout << "Output " << i << " first 5 values: ";
         for (int j = 0; j < 5; j++) {
             std::cout << output_data[j] << " ";
         }
         std::cout << std::endl;
     }
 
-    return 0;
+    // return output_data;
 }
+
+// int main() {
+//     float* input = new float[512 * 180 * 180];
+//     for (size_t i = 0; i < 512 * 180 * 180; ++i) {
+//         input[i] = 1.0f;
+//     }
+//     head(input);
+//     return 0;
+// }
